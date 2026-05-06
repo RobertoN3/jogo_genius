@@ -1,3 +1,5 @@
+// teste
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -17,7 +19,11 @@ int numeromultA(int nivel, int rand); //função que retorna um numero de 1 a 10
 
 
 
-int main(){}
+int main(){
+
+    int a;
+    scanf("%d", &a);
+}
 
 
 
