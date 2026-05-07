@@ -7,35 +7,38 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+#define NUMERO_DE_ENTRADAS 4
 
 int main(){
 
 bool jogo = true;
-int seed;
-int botão, sequência=0;
-int leitura, pontos =0;
+int seed; //a seed pode ser gerada no arduino com randomSeed
+int botão; // botão é um unico digito que será adicionado na sequencia
+int sequência=0; //sequencia salvará o que ja foi mostrado para comparar com o input do jogador
+int leitura; // leitura é o que o player insere, e q é comparada com sequencia
+int pontos = 0;
 
-printf("digite seed");
-scanf("%d", seed);
+printf("digite a seed: ");
+scanf("%d", &seed);
 srand(seed);
 
 while(jogo){
 
-    botão = (rand()%4)+1;
+    botão = (rand()%NUMERO_DE_ENTRADAS)+1;
 
     sequência = sequência*10 + botão;
 
-    printf("%d", sequência);
-    scanf("%d", leitura);
+    printf("%d\n", botão);
+    scanf("%d", &leitura);
     
     if (leitura == sequência){
-        printf("acertou");
+        printf("acertou\n");
         pontos ++;
     }
 
     else{
     jogo = false;
-    printf("game over\n pontuacao = %d", pontos);
+    printf("game over\npontuacao = %d", pontos);
     }
     
     
