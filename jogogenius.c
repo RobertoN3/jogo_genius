@@ -1,3 +1,8 @@
+// digitada uma seed, vai-se gerando uma sequencia com digitos de 1 a 4 ex: 134213
+// um digito de cada vez, por ex: 134213 --> 1342134 
+// e o jogador no caso precisa digitar a série inteira, porém só é mostrado o ultimo digito
+// adicionado na sequencia, no caso anterior, o numero 4
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
