@@ -17,12 +17,13 @@ const int mapaBotoes[4][3] = {
 };
 
 // --- Configuração dos LEDs do Genius ---
-// Usando as portas de 0 a 3 como solicitado
+// Usando as portas de 0 a 3 
 const int ledsGenius[] = {0, 1, 2, 3}; 
 const int numLedsGenius = 4;
 const int botoesValidosGenius[] = {1, 3, 7, 9}; 
+// LED porta 0 botao 1, LED porta 1 botao 3, etc
 
-// PINOS 4, 5 E 13 ESTÃO TOTALMENTE LIVRES E SOBRANDO!
+// PINOS 4, 5 E 13 ESTÃO TOTALMENTE LIVRES E SOBRANDo PRO ESP32
 
 // --- Variáveis de Controle do Menu Piscante ---
 int telaAtual = 0; // 0 = Menu Principal, 1 = Jogo Mat, 2 = Jogo Genius, 3 = Teste Reação
@@ -41,7 +42,7 @@ int totalAcertos = 0;
 int sequenciaGenius[100]; 
 int nivelGenius = 0;
 
-// --- Protótipos das Funções ---
+// --- Funções gerais---
 int lerBotao();
 int obterRespostaUsuario();
 void gerenciarMenuPiscante();
@@ -176,6 +177,8 @@ void gerenciarMenuPiscante() {
 }
 
 // --- JOGO 1: MATEMÁTICA ---
+// a dificuldade da subtracao sobe junto com a adicao
+// a dificuldade da multiplicacao sobe com a divisao
 void rodarJogoMatematica() {
   if (jogoAtivo) {
     long r = random(0, 2147483647);
@@ -196,7 +199,7 @@ void rodarJogoMatematica() {
       jogoAtivo = processa_pergunta(a, b, '-', a - b, &dificuldade);
     }
     else if (opera == 3) {
-      switch (nivelMat) {
+      switch (nivelMat) { // criando as fases/niveis da matematica
         case 1:           a = numeromultA(1, random(0, 10000)); b = numeromultB11_20(random(0, 10000)); break;
         case 2: case 3:   a = numeromultA(1, random(0, 10000)); b = numeromultB21_50(random(0, 10000)); break;
         case 4: case 5:   a = numeromultA(1, random(0, 10000)); b = numeromultB51_100(random(0, 10000)); break;
@@ -213,7 +216,7 @@ void rodarJogoMatematica() {
       }
       jogoAtivo = processa_pergunta(a, b, '*', a * b, &nivelMat);
     }
-    else if (opera == 4) {
+    else if (opera == 4) { // criando as fases/niveis da matemática 
       switch (nivelMat) {
         case 1:           b = numeromultA(1, random(0, 10000)); a = b * numeromultB11_20(random(0, 10000)); break;
         case 2: case 3:   b = numeromultA(1, random(0, 10000)); a = b * numeromultB21_50(random(0, 10000)); break;
@@ -382,7 +385,7 @@ void rodarJogoReacao() {
   
   if(trapaca) {
     lcd.clear();
-    lcd.print("TRAPACA DETECTADA");
+    lcd.print("Queimou a largada!");
     lcd.setCursor(0, 1);
     lcd.print("Clicou cedo demais");
     delay(3000);
