@@ -17,27 +17,33 @@ const int mapaBotoes[4][3] = {
 };
 
 // --- Configuração dos LEDs do Genius ---
-// Usando as portas de 0 a 3 como solicitado
-const int ledsGenius[] = {0, 1, 2, 3}; 
+// Usando as portas de 2 a 5
+const int ledsGenius[] = {4, 5, 2, 3}; 
 const int numLedsGenius = 4;
 const int botoesValidosGenius[] = {1, 3, 7, 9}; 
+// LED porta 4 botao 1, LED porta 5 botao 3, etc
 
-// PINOS 4, 5 E 13 ESTÃO TOTALMENTE LIVRES E SOBRANDO!
+// PINOS 0, 1 E 13 ESTÃO TOTALMENTE LIVRES E SOBRANDO PRO ESP32
 
 // --- Variáveis de Controle do Menu Piscante ---
-int telaAtual = 0; // 0 = Menu Principal, 1 = Jogo Mat, 2 = Jogo Genius, 3 = Teste Reação
+int telaAtual = 0; // 0=Menu, 1=Mat Simples, 2=Matematica 2.0, 3=Genius, 4=Reacao
 bool jogoAtivo = true;
 
 unsigned long tempoFaseMenu = 0;
 int estadoAbaMenu = 0; 
 
-// --- Variáveis Jogo 1 (Matemática) ---
+// --- Variáveis Jogo 1 (Matemática Simples) ---
 int dificuldade = 0; 
 int nivelMat = 1;       
 int totalPerguntas = 0;
 int totalAcertos = 0;
 
-// --- Variáveis Jogo 2 (Genius) ---
+// --- Variáveis Jogo 2 (Matemática 2.0 / Avançado) ---
+int nivelCalculo = 1;
+int totalPerguntasCalc = 0;
+int totalAcertosCalc = 0;
+
+// --- Variáveis Jogo 3 (Genius) ---
 int sequenciaGenius[100]; 
 int nivelGenius = 0;
 
@@ -46,10 +52,13 @@ int lerBotao();
 int obterRespostaUsuario();
 void gerenciarMenuPiscante();
 void rodarJogoMatematica();
+void rodarJogoCalculo();
 void rodarJogoGenius();
 void rodarJogoReacao();
 bool processa_pergunta(int a, int b, char operador, int resultado_correto, int *contador_progresso);
 void telaFimDeJogoMatematica();
+long potenciaInteira(int base, int exp);
+void telaFimDeJogoCalculo();
 
 // Auxiliares do Genius
 void proximaRodadaGenius();
@@ -57,7 +66,7 @@ void reproduzirSequenciaGenius();
 bool verificarEntradaUsuarioGenius();
 void sinalizarErroGenius();
 
-// Auxiliares da Matemática
+// Auxiliares da Matemática Simples
 int operacao(long a);
 int numerosomasub99(long b);
 int numerosomasub999(long b);
@@ -86,13 +95,25 @@ void setup() {
     digitalWrite(ledsGenius[i], LOW);
   }
 
-  // Semente aleatória usando uma leitura analógica fantasma para gerar ruído real
   randomSeed(analogRead(A5)); 
 
-  lcd.print("Multijogos");
-  lcd.setCursor(0, 1);
-  lcd.print("Iniciando...");
-  delay(1500);
+  // --- NOVA ANIMAÇÃO DE INICIALIZAÇÃO ---
+  lcd.clear();
+  lcd.print("Iniciando. ");
+  delay(1000);
+  
+  lcd.clear();
+  lcd.print("Iniciando.. ");
+  delay(1000);
+  
+  lcd.clear();
+  lcd.print("Iniciando... ");
+  delay(1000);
+  
+  lcd.clear();
+  lcd.print("Sinapse!!!");
+  delay(1000);
+  
   lcd.clear();
   tempoFaseMenu = millis();
 }
@@ -105,14 +126,17 @@ void loop() {
     rodarJogoMatematica();
   } 
   else if (telaAtual == 2) {
-    rodarJogoGenius();
+    rodarJogoCalculo();
   }
   else if (telaAtual == 3) {
+    rodarJogoGenius();
+  }
+  else if (telaAtual == 4) {
     rodarJogoReacao();
   }
 }
 
-// --- GERENCIADOR DO MENU PRINCIPAL ---
+// --- GERENCIADOR DO MENU PRINCIPAL (4 OPÇÕES) ---
 void gerenciarMenuPiscante() {
   unsigned long tempoAtual = millis();
 
@@ -121,7 +145,7 @@ void gerenciarMenuPiscante() {
       lcd.setCursor(0, 0);
       lcd.print("1-Matematica    ");
       lcd.setCursor(0, 1);
-      lcd.print("2-Genius Game   ");
+      lcd.print("2-Matematica 2.0");
       if (tempoAtual - tempoFaseMenu >= 2000) {
         lcd.clear();
         estadoAbaMenu = 1;
@@ -138,9 +162,9 @@ void gerenciarMenuPiscante() {
 
     case 2: 
       lcd.setCursor(0, 0);
-      lcd.print("3-Teste Reacao  ");
+      lcd.print("3-Genius Game   ");
       lcd.setCursor(0, 1);
-      lcd.print("                ");
+      lcd.print("4-Teste Reacao  ");
       if (tempoAtual - tempoFaseMenu >= 2000) {
         lcd.clear();
         estadoAbaMenu = 3;
@@ -160,22 +184,27 @@ void gerenciarMenuPiscante() {
 
   if (selecao == 1) {
     dificuldade = 0; nivelMat = 1; totalPerguntas = 0; totalAcertos = 0; jogoAtivo = true;
-    lcd.clear(); lcd.print("Jogo Matematica"); delay(1000);
+    lcd.clear(); lcd.print("Matematica"); delay(1000);
     telaAtual = 1;
   } 
   else if (selecao == 2) {
-    nivelGenius = 0; jogoAtivo = true;
-    lcd.clear(); lcd.print("Jogo Genius"); lcd.setCursor(0, 1); lcd.print("Use: 1, 3, 7 e 9"); delay(2000);
+    nivelCalculo = 1; totalPerguntasCalc = 0; totalAcertosCalc = 0; jogoAtivo = true;
+    lcd.clear(); lcd.print("Matematica 2.0"); lcd.setCursor(0, 1); lcd.print("Boa Sorte!"); delay(1500);
     telaAtual = 2;
   }
   else if (selecao == 3) {
+    nivelGenius = 0; jogoAtivo = true;
+    lcd.clear(); lcd.print("Jogo Genius"); lcd.setCursor(0, 1); lcd.print("Use: 1, 3, 7 e 9"); delay(2000);
+    telaAtual = 3;
+  }
+  else if (selecao == 4) {
     jogoAtivo = true;
     lcd.clear(); lcd.print("Teste Reacao"); lcd.setCursor(0, 1); lcd.print("Use o botao [5]"); delay(2000);
-    telaAtual = 3;
+    telaAtual = 4;
   }
 }
 
-// --- JOGO 1: MATEMÁTICA ---
+// --- JOGO 1: MATEMÁTICA SIMPLES ---
 void rodarJogoMatematica() {
   if (jogoAtivo) {
     long r = random(0, 2147483647);
@@ -192,7 +221,7 @@ void rodarJogoMatematica() {
       if (dificuldade < 5) { a = numerosomasub99(random(0, 10000)); b = numerosomasub99(random(0, 10000)); }
       else if (dificuldade < 10) { a = numerosomasub999(random(0, 10000)); b = numerosomasub99(random(0, 10000)); }
       else { a = numerosomasub999(random(0, 10000)); b = numerosomasub999(random(0, 10000)); }
-      troca_se_menor(&a, &b);
+      troca_se_menor(&a, b);
       jogoAtivo = processa_pergunta(a, b, '-', a - b, &dificuldade);
     }
     else if (opera == 3) {
@@ -252,7 +281,117 @@ void rodarJogoMatematica() {
   }
 }
 
-// --- JOGO 2: GENIUS GAME ---
+// --- JOGO 2: MATEMATICA 2.0 (AVANÇADA) ---
+void rodarJogoCalculo() {
+  if (jogoAtivo) {
+    totalPerguntasCalc++;
+    lcd.clear();
+    int sorteio = random(1, 5);
+    long respostaEsperada = 0;
+
+    int tetoRaizLog = 100 * nivelCalculo;
+    if (tetoRaizLog > 1000) tetoRaizLog = 1000;
+
+    if (sorteio == 1) { // --- RAIZ QUADRADA ---
+      int nraiz = random(1, tetoRaizLog);
+      double raiz = sqrt(nraiz);
+      while ((int)raiz * (int)raiz != nraiz) { 
+        nraiz = random(1, tetoRaizLog); 
+        raiz = sqrt(nraiz); 
+      }
+      lcd.setCursor(0, 0); lcd.print("Raiz de "); lcd.print(nraiz);
+      lcd.setCursor(0, 1); lcd.print("Digite: ");
+      respostaEsperada = (long)raiz;
+    }
+    else if (sorteio == 2) { // --- POTENCIAÇÃO ---
+      int npotencia = random(1, 10 + (nivelCalculo * 2));
+      if (npotencia > 30) npotencia = 30;
+      int expoente  = (npotencia <= 10) ? random(1, 4) : random(1, 3);
+      
+      lcd.setCursor(0, 0); lcd.print(npotencia); lcd.print("^"); lcd.print(expoente); lcd.print(" = ?");
+      lcd.setCursor(0, 1); lcd.print("Digite: ");
+      respostaEsperada = potenciaInteira(npotencia, expoente);
+    }
+    else if (sorteio == 3) { // --- LOGARITMO ---
+      int opcoes[4] = {2, 3, 5, 10};
+      int base = opcoes[random(0, 4)];
+      int logaritimando = random(1, tetoRaizLog);
+      double logaritimo = log((double)logaritimando) / log((double)base);
+      while (abs(logaritimo - round(logaritimo)) > 0.0001) {
+        logaritimando = random(1, tetoRaizLog);
+        logaritimo    = log((double)logaritimando) / log((double)base);
+      }
+      lcd.setCursor(0, 0); lcd.print("Log"); lcd.print(base); lcd.print("("); lcd.print(logaritimando); lcd.print(") = ?");
+      lcd.setCursor(0, 1); lcd.print("Digite: ");
+      respostaEsperada = (long)round(logaritimo);
+    }
+    else { // --- FATORIAL ---
+      int nfatorial = random(1, 7); 
+      long fatorial = 1;
+      for (int i = 2; i <= nfatorial; i++) fatorial *= i;
+      lcd.setCursor(0, 0); lcd.print(nfatorial); lcd.print("! = ?");
+      lcd.setCursor(0, 1); lcd.print("Digite: ");
+      respostaEsperada = fatorial;
+    }
+
+    int respostaUsuario = obterRespostaUsuario();
+
+    lcd.clear();
+    if (respostaUsuario == respostaEsperada) {
+      lcd.print("Acertou!");
+      totalAcertosCalc++;
+      nivelCalculo++; 
+      delay(1500);
+    } else {
+      lcd.print("Errouu!");
+      lcd.setCursor(0, 1);
+      lcd.print("Resp correta: "); lcd.print(respostaEsperada);
+      delay(3000);
+      jogoAtivo = false; 
+    }
+  } 
+  else { 
+    lcd.clear();
+    lcd.print("0:Sair");
+    lcd.setCursor(0, 1);
+    lcd.print("1-9:Continuar");
+
+    int escolha = -1;
+    while (escolha == -1) { escolha = lerBotao(); }
+
+    if (escolha == 0) {
+      telaFimDeJogoCalculo(); 
+      telaAtual = 0; 
+      estadoAbaMenu = 0; tempoFaseMenu = millis(); 
+    } else {
+      lcd.clear(); lcd.print("Continuando..."); delay(1500);
+      jogoAtivo = true;
+    }
+  }
+}
+
+// --- TELA FIM DE JOGO: MATEMATICA 2.0 ---
+void telaFimDeJogoCalculo() {
+  lcd.clear();
+  double porcentagem = (totalPerguntasCalc > 0) ? (100.0 * totalAcertosCalc) / totalPerguntasCalc : 0;
+  
+  lcd.setCursor(0, 0);
+  if      (porcentagem >= 70) lcd.print("  Parabens!    ");
+  else if (porcentagem >= 50) lcd.print("  Quase la!    ");
+  else                        lcd.print("   Melhore!    ");
+  
+  lcd.setCursor(0, 1);
+  lcd.print("Aproveit.: "); lcd.print((int)porcentagem); lcd.print("%");
+  delay(4000);
+}
+
+long potenciaInteira(int base, int exp) {
+  long resultado = 1;
+  for (int i = 0; i < exp; i++) resultado *= base;
+  return resultado;
+}
+
+// --- JOGO 3: GENIUS GAME ---
 void rodarJogoGenius() {
   if (jogoAtivo) {
     lcd.clear();
@@ -345,7 +484,7 @@ void sinalizarErroGenius() {
   }
 }
 
-// --- JOGO 3: TESTE DE REAÇÃO ---
+// --- JOGO 4: TESTE DE REAÇÃO ---
 void rodarJogoReacao() {
   lcd.clear();
   lcd.print("[5]: Iniciar");
@@ -366,7 +505,6 @@ void rodarJogoReacao() {
   lcd.clear();
   lcd.print("Aguarde o sinal...");
   
-  // Limpa o buffer de cliques anteriores
   while(lerBotao() != -1); 
   
   unsigned long tempoEsperaRandom = random(3000, 10001);
@@ -374,7 +512,6 @@ void rodarJogoReacao() {
   bool trapaca = false; 
   
   while(millis() - inicioEspera < tempoEsperaRandom) {
-    // Se ler o botão 5 durante a espera, aciona a trapaça
     if(lerBotao() == 5) { 
       trapaca = true;
     }
@@ -382,9 +519,9 @@ void rodarJogoReacao() {
   
   if(trapaca) {
     lcd.clear();
-    lcd.print("TRAPACA DETECTADA");
+    lcd.print("Queimou a");
     lcd.setCursor(0, 1);
-    lcd.print("Clicou cedo demais");
+    lcd.print("largada!");
     delay(3000);
     return;
   }
@@ -393,10 +530,7 @@ void rodarJogoReacao() {
   lcd.print("!!! AGORA !!!");
   
   unsigned long tempoInicioCronometro = micros();
-  
-  // Aguarda até o botão 5 ser pressionado na matriz
   while(lerBotao() != 5);
-  
   unsigned long tempoFimCronometro = micros();
   
   double tempo_reacao = (double)(tempoFimCronometro - tempoInicioCronometro) / 1000000.0;
@@ -413,28 +547,22 @@ void rodarJogoReacao() {
 // --- LEITURA DA MATRIZ DE BOTÕES ---
 int lerBotao() {
   for (int col = 0; col < 3; col++) {
-    // Ativa a coluna atual colocando ela em LOW
     digitalWrite(pinosColunas[col], LOW);
-    
     for (int lin = 0; lin < 4; lin++) {
       if (digitalRead(pinosLinhas[lin]) == LOW) {
         int botaoDetectado = mapaBotoes[lin][col];
-        
         if (botaoDetectado != -1) {
-          delay(20); // Debounce rápido para simulação estável
-          while(digitalRead(pinosLinhas[lin]) == LOW); // Aguarda o usuário soltar
+          delay(20); 
+          while(digitalRead(pinosLinhas[lin]) == LOW); 
           delay(20);
-          
-          // Desativa a coluna antes de retornar o valor
           digitalWrite(pinosColunas[col], HIGH);
           return botaoDetectado;
         }
       }
     }
-    // Desativa a coluna atual voltando ela para HIGH
     digitalWrite(pinosColunas[col], HIGH);
   }
-  return -1; // Retorna -1 se nenhum botão foi apertado
+  return -1; 
 }
 
 int obterRespostaUsuario() {
@@ -453,9 +581,9 @@ int obterRespostaUsuario() {
           lcd.setCursor(0, 1);
           lcd.print("Digite...       ");
         } else {
-          lcd.setCursor(0, 1);
-          lcd.print("                "); 
-          lcd.setCursor(0, 1);
+          lcd.setCursor(8, 1);
+          lcd.print("        "); 
+          lcd.setCursor(8, 1);
           lcd.print(valorTotal);
         }
         tempoUltimoDigito = millis(); 
@@ -464,9 +592,9 @@ int obterRespostaUsuario() {
     else if (botaoPressionado != -1 && botaoPressionado != 10) {
       if (!digitouAlgo) {
         digitouAlgo = true;
-        lcd.setCursor(0, 1);
-        lcd.print("                ");
-        lcd.setCursor(0, 1);
+        lcd.setCursor(8, 1);
+        lcd.print("        ");
+        lcd.setCursor(8, 1);
       }
       valorTotal = (valorTotal * 10) + botaoPressionado;
       lcd.print(botaoPressionado);
@@ -486,7 +614,7 @@ bool processa_pergunta(int a, int b, char operador, int resultado_correto, int *
   lcd.setCursor(0, 0);
   lcd.print(a); lcd.print(" "); lcd.print(operador); lcd.print(" "); lcd.print(b); lcd.print(" = ?");
   lcd.setCursor(0, 1);
-  lcd.print("Digite...");
+  lcd.print("Digite: ");
 
   int resposta = obterRespostaUsuario();
 
@@ -508,13 +636,19 @@ bool processa_pergunta(int a, int b, char operador, int resultado_correto, int *
   }
 }
 
+// --- TELA FIM DE JOGO: MATEMATICA SIMPLES ---
 void telaFimDeJogoMatematica() {
   lcd.clear();
-  lcd.print("Jogo Encerrado!");
   int porcentagem = 0;
   if (totalPerguntas > 0) {
     porcentagem = (totalAcertos * 100) / totalPerguntas; 
   }
+  
+  lcd.setCursor(0, 0);
+  if      (porcentagem >= 70) lcd.print("  Parabens!    ");
+  else if (porcentagem >= 50) lcd.print("  Quase la!    ");
+  else                        lcd.print("   Melhore!    ");
+
   lcd.setCursor(0, 1);
   lcd.print("Aproveit.: "); lcd.print(porcentagem); lcd.print("%");
   delay(4000); 
