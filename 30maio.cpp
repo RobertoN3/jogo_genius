@@ -23,7 +23,13 @@ const int numLedsGenius = 4;
 const int botoesValidosGenius[] = {1, 3, 7, 9}; 
 // LED porta 4 botao 1, LED porta 5 botao 3, etc
 
-// PINOS 0, 1 E 13 ESTÃO TOTALMENTE LIVRES E SOBRANDO PRO ESP32
+// --- Configuração do Buzzer (Porta 13) ---
+const int pinoBuzzer = 13;
+
+// Frequências para cada um dos 4 LEDs (Notas: Dó, Ré, Mi, Sol)
+const int sonsGenius[] = {262, 294, 330, 392}; 
+
+// PINOS 0 E 1 ESTÃO TOTALMENTE LIVRES E SOBRANDO PRO ESP32
 
 // --- Variáveis de Controle do Menu Piscante ---
 int telaAtual = 0; // 0=Menu, 1=Mat Simples, 2=Matematica 2.0, 3=Genius, 4=Reacao
@@ -47,7 +53,7 @@ int totalAcertosCalc = 0;
 int sequenciaGenius[100]; 
 int nivelGenius = 0;
 
-// --- Funções gerais---
+// --- Protótipos das Funções ---
 int lerBotao();
 int obterRespostaUsuario();
 void gerenciarMenuPiscante();
@@ -79,6 +85,9 @@ void troca_se_menor(int *a, int *b);
 void setup() {
   lcd.begin(16, 2);
   
+  // Configura o pino do Buzzer como Saída
+  pinMode(pinoBuzzer, OUTPUT);
+
   // Configura as linhas da matriz como entrada com Pull-up
   for (int i = 0; i < 4; i++) {
     pinMode(pinosLinhas[i], INPUT_PULLUP);
@@ -97,7 +106,7 @@ void setup() {
 
   randomSeed(analogRead(A5)); 
 
-  // --- NOVA ANIMAÇÃO DE INICIALIZAÇÃO ---
+  // --- ANIMAÇÃO DE INICIALIZAÇÃO ---
   lcd.clear();
   lcd.print("Iniciando. ");
   delay(1000);
@@ -111,7 +120,7 @@ void setup() {
   delay(1000);
   
   lcd.clear();
-  lcd.print("Sinapse!!!");
+  lcd.print("Sinapse!");
   delay(1000);
   
   lcd.clear();
@@ -204,7 +213,7 @@ void gerenciarMenuPiscante() {
   }
 }
 
-// --- JOGO 1: MATEMÁTICA ---
+// --- JOGO 1: MATEMÁTICA SIMPLES ---
 void rodarJogoMatematica() {
   if (jogoAtivo) {
     long r = random(0, 2147483647);
@@ -221,11 +230,11 @@ void rodarJogoMatematica() {
       if (dificuldade < 5) { a = numerosomasub99(random(0, 10000)); b = numerosomasub99(random(0, 10000)); }
       else if (dificuldade < 10) { a = numerosomasub999(random(0, 10000)); b = numerosomasub99(random(0, 10000)); }
       else { a = numerosomasub999(random(0, 10000)); b = numerosomasub999(random(0, 10000)); }
-      troca_se_menor(&a, b);
+      troca_se_menor(&a, &b);
       jogoAtivo = processa_pergunta(a, b, '-', a - b, &dificuldade);
     }
     else if (opera == 3) {
-      switch (nivelMat) { // criando as fases/niveis da matematica
+      switch (nivelMat) {
         case 1:           a = numeromultA(1, random(0, 10000)); b = numeromultB11_20(random(0, 10000)); break;
         case 2: case 3:   a = numeromultA(1, random(0, 10000)); b = numeromultB21_50(random(0, 10000)); break;
         case 4: case 5:   a = numeromultA(1, random(0, 10000)); b = numeromultB51_100(random(0, 10000)); break;
@@ -242,7 +251,7 @@ void rodarJogoMatematica() {
       }
       jogoAtivo = processa_pergunta(a, b, '*', a * b, &nivelMat);
     }
-    else if (opera == 4) { // criando as fases/niveis da matemática 
+    else if (opera == 4) {
       switch (nivelMat) {
         case 1:           b = numeromultA(1, random(0, 10000)); a = b * numeromultB11_20(random(0, 10000)); break;
         case 2: case 3:   b = numeromultA(1, random(0, 10000)); a = b * numeromultB21_50(random(0, 10000)); break;
@@ -432,11 +441,16 @@ void proximaRodadaGenius() {
 
 void reproduzirSequenciaGenius() {
   for (int i = 0; i < nivelGenius; i++) {
-    int pinoLed = ledsGenius[sequenciaGenius[i]];
+    int indiceLed = sequenciaGenius[i];
+    int pinoLed = ledsGenius[indiceLed];
+    int frequenciaSom = sonsGenius[indiceLed];
     
     digitalWrite(pinoLed, HIGH);
+    tone(pinoBuzzer, frequenciaSom); // Toca o som respectivo do LED
     delay(500); 
+    
     digitalWrite(pinoLed, LOW);
+    noTone(pinoBuzzer);             // Desliga o som
     delay(200);
   }
 }
@@ -459,9 +473,14 @@ bool verificarEntradaUsuarioGenius() {
     }
     
     int pinoLed = ledsGenius[indiceSelecao];
+    int frequenciaSom = sonsGenius[indiceSelecao];
+    
     digitalWrite(pinoLed, HIGH);
+    tone(pinoBuzzer, frequenciaSom); // Toca o som quando o usuario pressiona o botao
     delay(250);
+    
     digitalWrite(pinoLed, LOW);
+    noTone(pinoBuzzer);
 
     if (indiceSelecao != sequenciaGenius[i]) {
       return false; 
@@ -476,10 +495,14 @@ void sinalizarErroGenius() {
   lcd.setCursor(0, 1);
   lcd.print("Pontos: "); lcd.print(nivelGenius - 1);
 
+  // Som grave de erro prolongado combinado com os LEDs piscando
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < numLedsGenius; j++) digitalWrite(ledsGenius[j], HIGH);
+    tone(pinoBuzzer, 131); // Nota bem grave de erro
     delay(250);
+    
     for (int j = 0; j < numLedsGenius; j++) digitalWrite(ledsGenius[j], LOW);
+    noTone(pinoBuzzer);
     delay(250);
   }
 }
@@ -519,7 +542,7 @@ void rodarJogoReacao() {
   
   if(trapaca) {
     lcd.clear();
-    lcd.print("TRAPACA DETECTADA");
+    lcd.print("Queimou a");
     lcd.setCursor(0, 1);
     lcd.print("largada!");
     delay(3000);
