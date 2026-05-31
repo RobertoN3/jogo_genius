@@ -47,7 +47,7 @@ int totalAcertosCalc = 0;
 int sequenciaGenius[100]; 
 int nivelGenius = 0;
 
-// --- Protótipos das Funções ---
+// --- Funções gerais---
 int lerBotao();
 int obterRespostaUsuario();
 void gerenciarMenuPiscante();
@@ -204,7 +204,7 @@ void gerenciarMenuPiscante() {
   }
 }
 
-// --- JOGO 1: MATEMÁTICA SIMPLES ---
+// --- JOGO 1: MATEMÁTICA ---
 void rodarJogoMatematica() {
   if (jogoAtivo) {
     long r = random(0, 2147483647);
@@ -225,7 +225,7 @@ void rodarJogoMatematica() {
       jogoAtivo = processa_pergunta(a, b, '-', a - b, &dificuldade);
     }
     else if (opera == 3) {
-      switch (nivelMat) {
+      switch (nivelMat) { // criando as fases/niveis da matematica
         case 1:           a = numeromultA(1, random(0, 10000)); b = numeromultB11_20(random(0, 10000)); break;
         case 2: case 3:   a = numeromultA(1, random(0, 10000)); b = numeromultB21_50(random(0, 10000)); break;
         case 4: case 5:   a = numeromultA(1, random(0, 10000)); b = numeromultB51_100(random(0, 10000)); break;
@@ -242,7 +242,7 @@ void rodarJogoMatematica() {
       }
       jogoAtivo = processa_pergunta(a, b, '*', a * b, &nivelMat);
     }
-    else if (opera == 4) {
+    else if (opera == 4) { // criando as fases/niveis da matemática 
       switch (nivelMat) {
         case 1:           b = numeromultA(1, random(0, 10000)); a = b * numeromultB11_20(random(0, 10000)); break;
         case 2: case 3:   b = numeromultA(1, random(0, 10000)); a = b * numeromultB21_50(random(0, 10000)); break;
@@ -519,7 +519,7 @@ void rodarJogoReacao() {
   
   if(trapaca) {
     lcd.clear();
-    lcd.print("Queimou a");
+    lcd.print("TRAPACA DETECTADA");
     lcd.setCursor(0, 1);
     lcd.print("largada!");
     delay(3000);
